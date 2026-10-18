@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1016">
+<title>手机调试工作台 · 远程 / 代理 / 文件</title>
+<meta name="description" content="手机端离线调试工作台，把远程桌面、网络代理和文件传送三类高频操作收在同一页。可保存 SSH/RDP/VNC 连接档案，一键复制命令或唤起本机客户端；保存 HTTP/HTTPS/SOCKS5 代理并标记当前，生成可粘贴的 URL 与环境变量；记录常用共享目录和本机路径，选择文件计算 SHA-256、调用系统分享、下载副本，或上传到自建接口查看状态码与耗时。单文件零依赖、断网可用，数据仅存在本机浏览器，支持 JSON 备份导出导入。">
+<style>
+:root{
+  --bg:#0b1016;--bg2:#0e151d;--panel:#141c26;--panel2:#1b2531;--line:#2a3646;
+  --text:#e7eef6;--muted:#93a2b4;--accent:#35d6b2;--accent-ink:#04241d;
+  --blue:#7fb2ff;--warn:#f2b544;--danger:#ff7b72;--radius:14px;
+}
+@media (prefers-color-scheme:light){
+  :root{--bg:#f4f7fa;--bg2:#eaf0f6;--panel:#fff;--panel2:#f1f5f9;--line:#d7e0ea;
+    --text:#16202b;--muted:#5b6b7c;--accent:#0f9e83;--accent-ink:#fff;--blue:#1f5fb8;
+    --warn:#8a5a00;--danger:#c0322b;}
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  padding-bottom:calc(28px + env(safe-area-inset-bottom));
+}
+body.has-copybar{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:.01em}
+p{margin:0}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+
+/* 顶部 */
+.top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top)}
+.top-inner{padding-top:10px;padding-bottom:9px}
+.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.eyebrow{margin:0 0 2px;font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+h1{font-size:20px;line-height:1.2}
+.pill{flex:0 0 auto;margin-top:4px;font-size:11px;padding:4px 9px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);background:var(--panel2);white-space:nowrap}
+.pill.ok{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.seg{display:flex;gap:4px;margin-top:10px;padding:3px;background:var(--panel2);border:1px solid var(--line);border-radius:11px}
+.seg a{flex:1;text-align:center;padding:9px 4px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px}
+.seg a.on{background:var(--panel);color:var(--text);box-shadow:0 1px 0 rgba(0,0,0,.06)}
+
+/* 区块 */
+main.wrap{padding-top:16px}
+.sec{margin:0 0 26px;scroll-margin-top:calc(112px + env(safe-area-inset-top))}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+h2{font-size:16px;display:flex;align-items:center;gap:7px}
+.count{font-size:11px;font-weight:500;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+  border-radius:999px;padding:1px 8px;line-height:1.7}
+.hint{margin:4px 0 12px;font-size:12.5px;color:var(--muted)}
+.sub{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
+.sub h3{font-size:14px;margin-bottom:10px}
+
+/* 卡片 */
+.list{display:grid;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px 13px}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-title{font-size:14.5px;line-height:1.35;word-break:break-word}
+.meta{margin-top:3px;font-size:12px;color:var(--muted);word-break:break-all}
+.note{margin-top:6px;font-size:12.5px;color:var(--muted)}
+.badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+.badge{font-size:10px;letter-spacing:.06em;padding:1.5px 7px;border-radius:999px;
+  color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);white-space:nowrap}
+.badge.sample{color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);
+  border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+.cmd{display:block;margin-top:9px;padding:8px 10px;font-size:12.5px;line-height:1.5;color:var(--blue);
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;white-space:pre-wrap;word-break:break-all}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.empty{padding:16px 14px;border:1px dashed var(--line);border-radius:var(--radius);
+  color:var(--muted);font-size:13px;text-align:center;background:var(--panel)}
+
+/* 按钮 */
+.btn{appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);font:inherit;font-size:13px;line-height:1.2;text-decoration:none;cursor:pointer;gap:4px}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent}
+.btn.danger{background:transparent;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
+.btn.small{min-height:36px;padding:6px 10px;font-size:12.5px;border-radius:9px}
+.btn:focus-visible,.seg a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+
+/* 当前代理 */
+.now{margin-bottom:12px}
+.nowpanel{border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line));border-radius:var(--radius);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 9%,var(--panel)),var(--panel));padding:12px 13px}
+.nowpanel.dim{border-style:dashed;border-color:var(--line);background:var(--panel)}
+.now-label{font-size:10.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.now-name{margin-top:2px;font-size:15px;font-weight:650}
+
+/* 表单 */
+.field{margin-bottom:11px}
+.field-label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+.input{width:100%;min-height:42px;padding:9px 11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);font:inherit;font-size:16px;line-height:1.4}
+textarea.input{min-height:64px;resize:vertical}
+select.input{font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row .grow{flex:1 1 180px}
+
+/* 底部弹层 */
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(2,6,11,.62);display:flex;align-items:flex-end;justify-content:center}
+.overlay[hidden]{display:none}
+.sheet{width:100%;max-width:640px;max-height:88vh;overflow-y:auto;background:var(--panel);
+  border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0;
+  padding:16px 16px calc(18px + env(safe-area-inset-bottom));animation:rise .18s ease-out}
+@keyframes rise{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sheet-head h2{font-size:16px}
+.sheet-actions{display:flex;gap:8px;margin-top:16px}
+.sheet-actions .btn{flex:1;min-height:44px}
+.err{margin-top:8px;font-size:12.5px;color:var(--danger)}
+
+/* 提示与复制条 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:70;max-width:calc(100% - 32px);padding:9px 14px;border-radius:999px;font-size:13px;
+  background:#22303f;color:#eaf2ff;border:1px solid #34465a;box-shadow:0 6px 20px rgba(0,0,0,.35);text-align:center}
+.toast[hidden]{display:none}
+.copybar{position:fixed;left:0;right:0;bottom:0;z-index:65;display:flex;align-items:center;gap:8px;
+  padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line)}
+.copybar[hidden]{display:none}
+.copybar-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.copybar-label{font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.copybar code{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--blue);user-select:all;-webkit-user-select:all}
+.selectall{user-select:all;-webkit-user-select:all}
+
+/* 文件项 */
+.result{margin:9px 0 0;padding:8px 10px;font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;color:var(--muted);max-height:150px;overflow:auto}
+.result[hidden]{display:none}
+.result.bad{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,var(--line))}
+.result.good{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.file .meta .hash{color:var(--muted)}
+.foot{margin-top:8px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+.foot h2{font-size:14px;margin-bottom:4px}
+.foot p{font-size:12px;color:var(--muted);margin-bottom:10px}
+.foot .actions{margin-top:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/icon-512.png">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="title-row">
+      <div>
+        <p class="eyebrow">离线 · 单文件 · 本机保存</p>
+        <h1>调试工作台</h1>
+      </div>
+      <span id="storePill" class="pill">检查中</span>
+    </div>
+    <nav class="seg" aria-label="区块跳转">
+      <a href="#sec-remote" class="on">远程</a>
+      <a href="#sec-proxy">代理</a>
+      <a href="#sec-files">文件</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="sec" id="sec-remote">
+    <div class="sec-head">
+      <h2>远程连接 <span class="count" id="remoteCount">0</span></h2>
+      <button class="btn small primary" id="addRemote" type="button">＋ 新建</button>
+    </div>
+    <p class="hint">存主机信息，一键复制 SSH 命令，或用 rdp:// · vnc:// 唤起手机上的客户端。</p>
+    <div class="list" id="remoteList"></div>
+  </section>
+
+  <section class="sec" id="sec-proxy">
+    <div class="sec-head">
+      <h2>代理配置 <span class="count" id="proxyCount">0</span></h2>
+      <button class="btn small primary" id="addProxy" type="button">＋ 新建</button>
+    </div>
+    <p class="hint">网页改不了 Android 系统代理，这里负责保存、切换、复制成能直接粘的 URL 或环境变量。</p>
+    <div id="proxyNow"></div>
+    <div class="list" id="proxyList"></div>
+  </section>
+
+  <section class="sec" id="sec-files">
+    <div class="sec-head">
+      <h2>文件传送 <span class="count" id="targetCount">0</span></h2>
+      <button class="btn small primary" id="addTarget" type="button">＋ 新建入口</button>
+    </div>
+    <p class="hint">常用共享与目录一键复制或唤起；本机文件只在设备内读取，点“上传”才会发出去。</p>
+    <div class="list" id="targetList"></div>
+
+    <div class="sub">
+      <h3>本机文件</h3>
+      <div class="row" style="margin-bottom:10px">
+        <label class="btn primary" for="filePicker">选择文件</label>
+        <input id="filePicker" class="sr" type="file" multiple>
+        <button class="btn ghost" id="clearFiles" type="button">清空列表</button>
+      </div>
+      <div class="list" id="stagedList"></div>
+    </div>
+
+    <div class="sub">
+      <h3>上传接口</h3>
+      <div class="field">
+        <label class="field-label" for="upUrl">地址（支持 PUT / POST，留空则只在本机处理）</label>
+        <input class="input" id="upUrl" type="url" inputmode="url" autocomplete="off" placeholder="http://192.168.1.10:8080/upload">
+      </div>
+      <div class="field" style="max-width:180px">
+        <label class="field-label" for="upMethod">方法</label>
+        <select class="input" id="upMethod">
+          <option value="PUT">PUT</option>
+          <option value="POST">POST</option>
+        </select>
+      </div>
+      <p class="hint" style="margin-bottom:0">接口需要允许跨域（CORS）才读得到响应；读不到时会显示具体错误类型。</p>
+    </div>
+  </section>
+
+  <section class="foot" id="sec-data">
+    <h2>数据与备份</h2>
+    <p>档案只存在这台手机的浏览器里。换机、清缓存或隐私模式会丢，建议定期导出。</p>
+    <div class="actions">
+      <button class="btn small" id="exportFile" type="button">导出备份</button>
+      <button class="btn small" id="copyBackup" type="button">复制备份 JSON</button>
+      <label class="btn small" for="importFile">导入备份</label>
+      <input id="importFile" class="sr" type="file" accept="application/json,.json">
+      <button class="btn small danger" id="dropSamples" type="button" hidden>删除示例数据</button>
+      <button class="btn small danger" id="clearAll" type="button">清空全部</button>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">编辑</h2>
+      <button class="btn small ghost" id="sheetClose" type="button" aria-label="关闭">关闭</button>
+    </div>
+    <form id="sheetForm" novalidate></form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="copybar" id="copyBar" hidden>
+  <div class="copybar-text">
+    <span class="copybar-label">最近复制</span>
+    <code id="copyBarCode"></code>
+  </div>
+  <button class="btn small" id="copyAgain" type="button">再复制</button>
+  <button class="btn small ghost" id="copyClose" type="button" aria-label="收起">×</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var KEY='debugbench.v1';
+var DEFAULT_PORT={ssh:'22',rdp:'3389',vnc:'5900'};
+var HASH_LIMIT=64*1024*1024;
+
+function $(s){return document.querySelector(s);}
+function h(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
+function link(href,cls,text){var a=document.createElement('a');a.className=cls;a.href=href;a.textContent=text;a.rel='noopener';return a;}
+function btn(label,cls,fn,aria){var b=h('button',cls);b.type='button';b.textContent=label;if(aria)b.setAttribute('aria-label',aria);if(fn)b.addEventListener('click',fn);return b;}
+function uid(p){return p+Date.now().toString(36).slice(-5)+Math.random().toString(36).slice(2,6);}
+function clip(s,n){s=String(s||'');return s.length>n?s.slice(0,n)+'…':s;}
+
+/* ---------- 存储 ---------- */
+var store=(function(){
+  var ok=false;
+  try{localStorage.setItem('__probe__','1');localStorage.removeItem('__probe__');ok=true;}catch(e){ok=false;}
+  return {
+    ok:ok,
+    read:function(){ if(!ok)return null; try{var raw=localStorage.getItem(KEY);return raw?JSON.parse(raw):null;}catch(e){return null;} },
+    write:function(v){ if(!ok)return false; try{localStorage.setItem(KEY,JSON.stringify(v));return true;}catch(e){return false;} }
+  };
+})();
+
+function seed(){
+  return {
+    version:1,
+    remotes:[
+      {id:uid('r'),name:'示例 · 家里 NAS（SSH）',protocol:'ssh',host:'192.168.1.10',port:'22',user:'admin',command:'',note:'占位地址，改成你自己的再保存',sample:true},
+      {id:uid('r'),name:'示例 · 云主机跳板',protocol:'ssh',host:'203.0.113.10',port:'2222',user:'deploy',command:'',note:'文档保留地址段 203.0.113.0/24',sample:true},
+      {id:uid('r'),name:'示例 · Windows 办公机',protocol:'rdp',host:'192.168.1.20',port:'3389',user:'PC\\xiaoyi',command:'',note:'用 RD Client 打开 rdp:// 链接',sample:true}
+    ],
+    proxies:[
+      {id:uid('p'),name:'示例 · 本机 HTTP 代理',type:'http',host:'127.0.0.1',port:'7890',user:'',pass:'',note:'本地客户端常见端口',sample:true},
+      {id:uid('p'),name:'示例 · 局域网 SOCKS5',type:'socks5',host:'192.168.1.10',port:'1080',user:'',pass:'',note:'占位地址',sample:true}
+    ],
+    activeProxyId:null,
+    targets:[
+      {id:uid('t'),name:'示例 · NAS 共享目录',kind:'smb',uri:'smb://192.168.1.10/share',note:'交给文件管理器打开',sample:true},
+      {id:uid('t'),name:'示例 · 手机下载目录',kind:'path',uri:'/sdcard/Download/debug',note:'路径只能复制，网页无法直接打开',sample:true},
+      {id:uid('t'),name:'示例 · 上传接口',kind:'http',uri:'http://192.168.1.10:8080/upload',note:'与下面“上传接口”配合',sample:true}
+    ],
+    upload:{url:'',method:'PUT'}
+  };
+}
+
+function normRemote(r){
+  if(!r||!r.host)return null;
+  return {id:r.id||uid('r'),name:String(r.name||r.host),protocol:['ssh','rdp','vnc'].indexOf(r.protocol)>=0?r.protocol:'ssh',
+    host:String(r.host),port:String(r.port==null?'':r.port),user:String(r.user||''),command:String(r.command||''),
+    note:String(r.note||''),sample:!!r.sample};
+}
+function normProxy(p){
+  if(!p||!p.host)return null;
+  return {id:p.id||uid('p'),name:String(p.name||p.host),type:['http','https','socks5'].indexOf(p.type)>=0?p.type:'http',
+    host:String(p.host),port:String(p.port==null?'':p.port),user:String(p.user||''),pass:String(p.pass||''),
+    note:String(p.note||''),sample:!!p.sample};
+}
+function normTarget(t){
+  if(!t||!t.uri)return null;
+  return {id:t.id||uid('t'),name:String(t.name||t.uri),kind:['smb','http','ftp','path','other'].indexOf(t.kind)>=0?t.kind:'other',
+    uri:String(t.uri),note:String(t.note||''),sample:!!t.sample};
+}
+function normalize(raw){
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))return null;
+  var s={version:1,remotes:[],proxies:[],targets:[],activeProxyId:null,upload:{url:'',method:'PUT'}};
+  if(Array.isArray(raw.remotes))s.remotes=raw.remotes.map(normRemote).filter(Boolean);
+  if(Array.isArray(raw.proxies))s.proxies=raw.proxies.map(normProxy).filter(Boolean);
+  if(Array.isArray(raw.targets))s.targets=raw.targets.map(normTarget).filter(Boolean);
+  s.activeProxyId=raw.activeProxyId||null;
+  if(raw.upload&&typeof raw.upload==='object'){
+    s.upload.url=String(raw.upload.url||'');
+    s.upload.method=['PUT','POST','PATCH'].indexOf(raw.upload.method)>=0?raw.upload.method:'PUT';
+  }
+  return s;
+}
+
+var state=normalize(store.read());
+if(!state){ state=seed(); store.write(state); }
+
+function persist(){
+  var ok=store.write(state);
+  if(!ok&&store.ok)toast('保存失败：本机存储可能已满');
+  if(!store.ok)renderPill();
+}
+
+/* ---------- 复制 ---------- */
+var lastCopy='';
+
+function legacyCopy(text){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,text.length);
+    var ok=document.execCommand('copy');ta.remove();return ok;
+  }catch(e){return false;}
+}
+function showCopyBar(text){
+  lastCopy=text;
+  $('#copyBarCode').textContent=text;
+  $('#copyBar').hidden=false;
+  document.body.classList.add('has-copybar');
+}
+function copyText(text,label){
+  var done=function(ok){
+    showCopyBar(text);
+    toast(ok?'已复制：'+(label||'内容'):'复制被拦截，长按下方文本手动复制');
+    return ok;
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(function(){return done(true);},function(){return done(legacyCopy(text));});
+  }
+  return Promise.resolve(done(legacyCopy(text)));
+}
+var toastTimer=null;
+function toast(msg){
+  var t=$('#toast');t.textContent=msg;t.hidden=false;
+  clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true;},2600);
+}
+
+/* ---------- 远程 ---------- */
+function portOf(r){return String(r.port||DEFAULT_PORT[r.protocol]||'');}
+function remoteMeta(r){return (r.user?r.user+'@':'')+r.host+':'+portOf(r);}
+function sshCommand(r){
+  var p=portOf(r);
+  var target=(r.user?r.user+'@':'')+r.host;
+  return 'ssh '+((p&&p!=='22')?'-p '+p+' ':'')+target;
+}
+function remoteCopyText(r){
+  if(r.command&&r.command.trim())return r.command.trim();
+  if(r.protocol==='ssh')return sshCommand(r);
+  return r.host+':'+portOf(r);
+}
+function remoteUri(r){
+  var p=portOf(r);
+  if(r.protocol==='ssh')return 'ssh://'+(r.user?encodeURIComponent(r.user)+'@':'')+r.host+(p?':'+p:'');
+  if(r.protocol==='vnc')return 'vnc://'+r.host+(p?':'+p:'');
+  if(r.protocol==='rdp'){
+    var q='full%20address='+encodeURIComponent('s:'+r.host+':'+p);
+    if(r.user)q+='&username='+encodeURIComponent('s:'+r.user);
+    return 'rdp://'+q;
+  }
+  return '';
+}
+function renderRemotes(){
+  var box=$('#remoteList');box.textContent='';
+  $('#remoteCount').textContent=state.remotes.length;
+  if(!state.remotes.length){box.appendChild(h('p','empty','还没有远程档案，点右上角“＋ 新建”添加。'));return;}
+  state.remotes.forEach(function(r){
+    var card=h('article','card');
+    var head=h('div','card-head');
+    var left=h('div');
+    left.appendChild(h('h3','card-title',r.name));
+    left.appendChild(h('p','meta mono',remoteMeta(r)));
+    head.appendChild(left);
+    var badges=h('div','badges');
+    badges.appendChild(h('span','badge',r.protocol.toUpperCase()));
+    if(r.sample)badges.appendChild(h('span','badge sample','示例'));
+    head.appendChild(badges);
+    card.appendChild(head);
+    if(r.note)card.appendChild(h('p','note',r.note));
+    card.appendChild(h('code','cmd',remoteCopyText(r)));
+    var row=h('div','actions');
+    row.appendChild(btn('复制','btn small primary',function(){copyText(remoteCopyText(r),r.name);}));
+    var uri=remoteUri(r);
+    if(uri){
+      row.appendChild(link(uri,'btn small','打开'));
+    }else{
+      var b=btn('打开','btn small',function(){toast('这条档案没有可唤起的链接');});
+      b.disabled=true;row.appendChild(b);
+    }
+    row.appendChild(btn('编辑','btn small ghost',function(){remoteForm(r);}));
+    card.appendChild(row);
+    box.appendChild(card);
+  });
+}
+function remoteForm(item){
+  var isNew=!item;
+  var d=item||{name:'',protocol:'ssh',host:'',port:'',user:'',command:'',note:''};
+  openForm({
+    title:isNew?'新建远程档案':'编辑远程档案',
+    fields:[
+      {key:'name',label:'名称',type:'text',required:true,value:d.name,placeholder:'家里 NAS / 云主机跳板'},
+      {key:'protocol',label:'协议',type:'select',value:d.protocol,options:[['ssh','SSH 终端'],['rdp','远程桌面 RDP'],['vnc','VNC 屏幕']]},
+      {key:'host',label:'主机（IP 或域名）',type:'text',required:true,value:d.host,placeholder:'192.168.1.10'},
+      {key:'port',label:'端口（可留空用默认）',type:'number',value:d.port,placeholder:'22 / 3389 / 5900',inputmode:'numeric'},
+      {key:'user',label:'用户名（可选）',type:'text',value:d.user,placeholder:'admin'},
+      {key:'command',label:'自定义命令（可选，填了优先复制它）',type:'textarea',value:d.command,placeholder:'ssh -i ~/.ssh/id_ed25519 -p 2222 admin@host'},
+      {key:'note',label:'备注（可选）',type:'text',value:d.note,placeholder:'走 Tailscale / 需要跳板'}
+    ],
+    onSubmit:function(v){
+      if(!v.name.trim())return '请填写名称';
+      if(!v.host.trim())return '请填写主机';
+      if(v.port.trim()&&!(Number(v.port)>=1&&Number(v.port)<=65535))return '端口需在 1–65535 之间';
+      var data={id:d.id||uid('r'),name:v.name.trim(),protocol:v.protocol,host:v.host.trim(),port:v.port.trim(),
+        user:v.user.trim(),command:v.command.trim(),note:v.note.trim(),sample:false};
+      if(isNew)state.remotes.unshift(data);else Object.assign(item,data);
+      persist();renderRemotes();return null;
+    },
+    onDelete:isNew?null:function(){removeFrom('remotes',item,'远程档案');}
+  });
+}
+
+/* ---------- 代理 ---------- */
+function proxyAuth(p){return p.user?encodeURIComponent(p.user)+(p.pass?':'+encodeURIComponent(p.pass):'')+'@':'';}
+function proxyUrl(p){return p.type+'://'+proxyAuth(p)+p.host+':'+String(p.port||'');}
+function proxyHostPort(p){return p.host+':'+String(p.port||'');}
+function proxyEnv(p){
+  var u=proxyUrl(p);
+  return 'export http_proxy="'+u+'"\nexport https_proxy="'+u+'"\nexport all_proxy="'+u+'"\nexport no_proxy="127.0.0.1,localhost"';
+}
+function activeProxy(){return state.proxies.filter(function(p){return p.id===state.activeProxyId;})[0]||null;}
+function renderProxies(){
+  var now=$('#proxyNow');now.textContent='';
+  var box=$('#proxyList');box.textContent='';
+  $('#proxyCount').textContent=state.proxies.length;
+  var ap=activeProxy();
+  var panel=h('div','nowpanel'+(ap?'':' dim'));
+  panel.appendChild(h('p','now-label','当前代理'));
+  if(ap){
+    panel.appendChild(h('p','now-name',ap.name));
+    panel.appendChild(h('code','cmd',proxyUrl(ap)));
+    var row=h('div','actions');
+    row.appendChild(btn('复制 URL','btn small primary',function(){copyText(proxyUrl(ap),'代理 URL');}));
+    row.appendChild(btn('复制环境变量','btn small',function(){copyText(proxyEnv(ap),'export 环境变量');}));
+    row.appendChild(btn('取消选择','btn small ghost',function(){state.activeProxyId=null;persist();renderProxies();}));
+    panel.appendChild(row);
+  }else{
+    panel.appendChild(h('p','note','未选择。选一条档案设为当前，复制 URL 或环境变量时不用再翻。'));
+  }
+  now.appendChild(panel);
+  if(!state.proxies.length){box.appendChild(h('p','empty','还没有代理档案，点右上角“＋ 新建”添加。'));return;}
+  state.proxies.forEach(function(p){
+    var isActive=p.id===state.activeProxyId;
+    var card=h('article','card');
+    var head=h('div','card-head');
+    var left=h('div');
+    left.appendChild(h('h3','card-title',p.name));
+    left.appendChild(h('p','meta',p.type.toUpperCase()+' · '+proxyHostPort(p)+(p.user?' · 含认证':'')));
+    head.appendChild(left);
+    var badges=h('div','badges');
+    if(isActive)badges.appendChild(h('span','badge','当前'));
+    if(p.sample)badges.appendChild(h('span','badge sample','示例'));
+    head.appendChild(badges);
+    card.appendChild(head);
+    if(p.note)card.appendChild(h('p','note',p.note));
+    card.appendChild(h('code','cmd',proxyUrl(p)));
+    var row=h('div','actions');
+    row.appendChild(btn('复制 URL','btn small primary',function(){copyText(proxyUrl(p),p.name);}));
+    row.appendChild(btn('host:port','btn small',function(){copyText(proxyHostPort(p),'host:port');}));
+    var setBtn=btn(isActive?'已是当前':'设为当前','btn small',function(){
+      state.activeProxyId=isActive?null:p.id;persist();renderProxies();
+      toast(isActive?'已取消当前代理':'当前代理：'+p.name);
+    });
+    row.appendChild(setBtn);
+    row.appendChild(btn('编辑','btn small ghost',function(){proxyForm(p);}));
+    card.appendChild(row);
+    box.appendChild(card);
+  });
+}
+function proxyForm(item){
+  var isNew=!item;
+  var d=item||{name:'',type:'http',host:'',port:'',user:'',pass:'',note:''};
+  openForm({
+    title:isNew?'新建代理档案':'编辑代理档案',
+    fields:[
+      {key:'name',label:'名称',type:'text',required:true,value:d.name,placeholder:'本机 HTTP 代理'},
+      {key:'type',label:'类型',type:'select',value:d.type,options:[['http','HTTP'],['https','HTTPS'],['socks5','SOCKS5']]},
+      {key:'host',label:'主机',type:'text',required:true,value:d.host,placeholder:'127.0.0.1'},
+      {key:'port',label:'端口',type:'number',required:true,value:d.port,placeholder:'7890',inputmode:'numeric'},
+      {key:'user',label:'用户名（可选）',type:'text',value:d.user,placeholder:'留空表示无认证'},
+      {key:'pass',label:'密码（可选，明文存在本机）',type:'password',value:d.pass,placeholder:'共享设备上不要存密码'},
+      {key:'note',label:'备注（可选）',type:'text',value:d.note,placeholder:'给哪些 App 用'}
+    ],
+    onSubmit:function(v){
+      if(!v.name.trim())return '请填写名称';
+      if(!v.host.trim())return '请填写主机';
+      if(!v.port.trim()||!(Number(v.port)>=1&&Number(v.port)<=65535))return '端口需在 1–65535 之间';
+      var data={id:d.id||uid('p'),name:v.name.trim(),type:v.type,host:v.host.trim(),port:v.port.trim(),
+        user:v.user.trim(),pass:v.pass,note:v.note.trim(),sample:false};
+      if(isNew)state.proxies.unshift(data);else Object.assign(item,data);
+      persist();renderProxies();return null;
+    },
+    onDelete:isNew?null:function(){removeFrom('proxies',item,'代理档案');}
+  });
+}
+
+/* ---------- 文件入口 ---------- */
+function targetOpenable(t){
+  if(t.kind==='path')return false;
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(t.uri);
+}
+function renderTargets(){
+  var box=$('#targetList');box.textContent='';
+  $('#targetCount').textContent=state.targets.length;
+  if(!state.targets.length){box.appendChild(h('p','empty','还没有传送入口，点右上角“＋ 新建”添加共享或目录。'));return;}
+  state.targets.forEach(function(t){
+    var card=h('article','card');
+    var head=h('div','card-head');
+    var left=h('div');
+    left.appendChild(h('h3','card-title',t.name));
+    left.appendChild(h('p','meta mono',t.uri));
+    head.appendChild(left);
+    var badges=h('div','badges');
+    badges.appendChild(h('span','badge',t.kind.toUpperCase()));
+    if(t.sample)badges.appendChild(h('span','badge sample','示例'));
+    head.appendChild(badges);
+    card.appendChild(head);
+    if(t.note)card.appendChild(h('p','note',t.note));
+    var row=h('div','actions');
+    row.appendChild(btn('复制地址','btn small primary',function(){copyText(t.uri,t.name);}));
+    if(targetOpenable(t)){
+      row.appendChild(link(t.uri,'btn small','打开'));
+    }else{
+      var b=btn('打开','btn small',function(){toast('这个地址没有可唤起的协议，只能复制');});
+      b.disabled=true;row.appendChild(b);
+    }
+    row.appendChild(btn('编辑','btn small ghost',function(){targetForm(t);}));
+    card.appendChild(row);
+    box.appendChild(card);
+  });
+}
+function targetForm(item){
+  var isNew=!item;
+  var d=item||{name:'',kind:'smb',uri:'',note:''};
+  openForm({
+    title:isNew?'新建传送入口':'编辑传送入口',
+    fields:[
+      {key:'name',label:'名称',type:'text',required:true,value:d.name,placeholder:'NAS 共享目录'},
+      {key:'kind',label:'类型',type:'select',value:d.kind,options:[['smb','SMB 共享'],['http','HTTP 地址'],['ftp','FTP'],['path','本机路径'],['other','其他']]},
+      {key:'uri',label:'地址或路径',type:'text',required:true,value:d.uri,placeholder:'smb://192.168.1.10/share',inputmode:'url'},
+      {key:'note',label:'备注（可选）',type:'text',value:d.note,placeholder:'用哪个 App 打开'}
+    ],
+    onSubmit:function(v){
+      if(!v.name.trim())return '请填写名称';
+      if(!v.uri.trim())return '请填写地址或路径';
+      var data={id:d.id||uid('t'),name:v.name.trim(),kind:v.kind,uri:v.uri.trim(),note:v.note.trim(),sample:false};
+      if(isNew)state.targets.unshift(data);else Object.assign(item,data);
+      persist();renderTargets();return null;
+    },
+    onDelete:isNew?null:function(){removeFrom('targets',item,'传送入口');}
+  });
+}
+
+/* ---------- 本机文件 ---------- */
+var staged=[];
+
+function fmtBytes(n){
+  if(n<1024)return n+' B';
+  if(n<1024*1024)return (n/1024).toFixed(1)+' KB';
+  if(n<1024*1024*1024)return (n/1024/1024).toFixed(1)+' MB';
+  return (n/1024/1024/1024).toFixed(2)+' GB';
+}
+function hex(buf){
+  var out='',view=new Uint8Array(buf);
+  for(var i=0;i<view.length;i++)out+=view[i].toString(16).padStart(2,'0');
+  return out;
+}
+function hashFile(file){
+  if(!(window.crypto&&window.crypto.subtle&&window.crypto.subtle.digest)){
+    return Promise.resolve({error:'当前环境不支持 SHA-256'});
+  }
+  if(file.size>HASH_LIMIT)return Promise.resolve({error:'超过 64 MB，已跳过哈希'});
+  return file.arrayBuffer().then(function(buf){
+    return crypto.subtle.digest('SHA-256',buf);
+  }).then(function(d){return {hex:hex(d)};},function(e){return {error:'哈希失败：'+(e&&e.message||e)};});
+}
+function renderStaged(){
+  var box=$('#stagedList');box.textContent='';
+  if(!staged.length){
+    box.appendChild(h('p','empty','还没选文件。选好的文件只留在本页内存里，刷新即清空。'));
+    return;
+  }
+  staged.forEach(function(item){
+    var card=h('article','card file');
+    var head=h('div','card-head');
+    var left=h('div');
+    left.appendChild(h('h3','card-title',item.file.name));
+    var meta=h('p','meta',fmtBytes(item.file.size)+(item.file.type?' · '+item.file.type:''));
+    var hashLine=h('span','hash',item.hash?(' · SHA-256 '+item.hash.slice(0,12)+'…'):(item.hashErr?' · '+item.hashErr:' · 计算哈希…'));
+    meta.appendChild(hashLine);
+    left.appendChild(meta);
+    head.appendChild(left);
+    card.appendChild(head);
+    var row=h('div','actions');
+    row.appendChild(btn('上传','btn small primary',function(){upload(item,card);}));
+    row.appendChild(btn('分享','btn small',function(){shareFile(item);}));
+    row.appendChild(btn('下载副本','btn small',function(){saveCopy(item);}));
+    row.appendChild(btn('复制哈希','btn small ghost',function(){
+      if(item.hash)copyText(item.hash,item.file.name+' 的 SHA-256');
+      else toast(item.hashErr||'哈希还没算完，稍等一下');
+    }));
+    card.appendChild(row);
+    var out=h('pre','result',item.result||'');
+    out.hidden=!item.result;
+    if(item.resultTone)out.className='result '+item.resultTone;
+    card.appendChild(out);
+    box.appendChild(card);
+  });
+}
+function addFiles(files){
+  Array.prototype.forEach.call(files||[],function(file){
+    var item={id:uid('f'),file:file,hash:null,hashErr:'',result:'',resultTone:''};
+    staged.push(item);
+    renderStaged();
+    hashFile(file).then(function(r){
+      if(r.hex)item.hash=r.hex;else item.hashErr=r.error||'哈希不可用';
+      renderStaged();
+    });
+  });
+}
+function shareFile(item){
+  if(!navigator.share){
+    toast('这个浏览器不支持系统分享，可以先用“下载副本”');
+    return;
+  }
+  var payload={files:[item.file],title:item.file.name};
+  if(navigator.canShare&&!navigator.canShare(payload)){
+    toast('该文件类型不支持系统分享');
+    return;
+  }
+  navigator.share(payload).then(function(){toast('已交给系统分享');},function(e){
+    if(e&&e.name==='AbortError')return;
+    toast('分享失败：'+(e&&e.message||e));
+  });
+}
+function saveCopy(item){
+  try{
+    var url=URL.createObjectURL(item.file);
+    var a=document.createElement('a');
+    a.href=url;a.download=item.file.name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},8000);
+    toast('已交给浏览器下载：'+clip(item.file.name,24));
+  }catch(e){toast('下载失败：'+(e&&e.message||e));}
+}
+function upload(item,card){
+  var url=(state.upload.url||'').trim();
+  if(!url){toast('先填下面的“上传接口”地址');return;}
+  if(!/^https?:\/\//i.test(url)){toast('接口地址需要以 http:// 或 https:// 开头');return;}
+  var out=card.querySelector('.result');
+  var method=state.upload.method||'PUT';
+  var started=Date.now();
+  item.result='上传中… '+method+' '+url;item.resultTone='';
+  if(out){out.textContent=item.result;out.hidden=false;out.className='result';}
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var timer=setTimeout(function(){if(ctrl)ctrl.abort();},30000);
+  fetch(url,{method:method,body:item.file,headers:{'Content-Type':item.file.type||'application/octet-stream'},
+    signal:ctrl?ctrl.signal:undefined}).then(function(res){
+    var ms=Date.now()-started;
+    return res.text().then(function(txt){
+      var body=txt?txt.slice(0,300):'';
+      item.result=res.status+' '+res.statusText+' · '+ms+' ms'+(body?'\n'+body:'');
+      item.resultTone=res.ok?'good':'bad';
+      renderStaged();
+      toast(res.ok?'上传完成：'+res.status:'接口返回 '+res.status);
+    },function(){
+      item.result=res.status+' '+res.statusText+' · '+ms+' ms（响应体读不到）';
+      item.resultTone=res.ok?'good':'bad';renderStaged();
+    });
+  },function(err){
+    var ms=Date.now()-started;
+    var msg=err&&err.name==='AbortError'?'请求超时（30 秒）':(err&&err.message||String(err));
+    item.result='失败 · '+ms+' ms\n'+msg+'\n常见原因：地址不可达、CORS 未放行、HTTPS 页面调 HTTP 接口被拦。';
+    item.resultTone='bad';renderStaged();
+    toast('上传失败，详情见文件下方');
+  }).then(function(){clearTimeout(timer);});
+}
+
+/* ---------- 表单弹层 ---------- */
+var overlay=$('#overlay');
+function closeSheet(){overlay.hidden=true;$('#sheetForm').textContent='';}
+function openForm(cfg){
+  var form=$('#sheetForm');form.textContent='';
+  $('#sheetTitle').textContent=cfg.title;
+  var inputs={};
+  cfg.fields.forEach(function(f){
+    var wrap=h('div','field');
+    var id='f-'+f.key;
+    var label=h('label','field-label',f.label);label.htmlFor=id;
+    var input;
+    if(f.type==='select'){
+      input=h('select','input');input.id=id;
+      f.options.forEach(function(o){var opt=h('option',null,o[1]);opt.value=o[0];input.appendChild(opt);});
+      input.value=f.value||f.options[0][0];
+    }else if(f.type==='textarea'){
+      input=h('textarea','input');input.id=id;input.rows=2;input.value=f.value||'';
+      if(f.placeholder)input.placeholder=f.placeholder;
+    }else{
+      input=h('input','input');input.id=id;input.type=f.type||'text';input.value=f.value||'';
+      if(f.placeholder)input.placeholder=f.placeholder;
+      if(f.inputmode)input.inputMode=f.inputmode;
+    }
+    if(f.required)input.required=true;
+    wrap.appendChild(label);wrap.appendChild(input);
+    form.appendChild(wrap);
+    inputs[f.key]=input;
+  });
+  var err=h('p','err');err.hidden=true;form.appendChild(err);
+  var row=h('div','sheet-actions');
+  var cancel=btn('取消','btn ghost',closeSheet);cancel.type='button';
+  var save=btn('保存','btn primary',null);save.type='submit';
+  row.appendChild(cancel);row.appendChild(save);form.appendChild(row);
+  if(cfg.onDelete){
+    var del=btn('删除这条档案','btn small danger',function(){closeSheet();setTimeout(cfg.onDelete,150);});
+    del.style.marginTop='10px';del.style.width='100%';
+    form.appendChild(del);
+  }
+  form.onsubmit=function(ev){
+    ev.preventDefault();
+    var v={};Object.keys(inputs).forEach(function(k){v[k]=inputs[k].value;});
+    var msg=cfg.onSubmit(v);
+    if(msg){err.textContent=msg;err.hidden=false;return;}
+    closeSheet();
+  };
+  overlay.hidden=false;
+  var first=form.querySelector('input,select,textarea');
+  if(first)setTimeout(function(){try{first.focus();}catch(e){}},60);
+}
+overlay.addEventListener('click',function(e){if(e.target===overlay)closeSheet();});
+$('#sheetClose').addEventListener('click',closeSheet);
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!overlay.hidden)closeSheet();});
+
+function removeFrom(key,item,label){
+  if(!window.confirm('删除“'+item.name+'”？'))return;
+  state[key]=state[key].filter(function(x){return x.id!==item.id;});
+  if(key==='proxies'&&state.activeProxyId===item.id)state.activeProxyId=null;
+  persist();renderAll();toast('已删除'+label);
+}
+
+/* ---------- 备份 ---------- */
+function pad(n){return n<10?'0'+n:''+n;}
+function stamp(){
+  var d=new Date();
+  return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
+}
+function backupJson(){
+  var data=JSON.parse(JSON.stringify(state));
+  data.exportedAt=new Date().toISOString();
+  return JSON.stringify(data,null,2);
+}
+function exportBackup(){
+  try{
+    var blob=new Blob([backupJson()],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='调试工作台备份-'+stamp()+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},8000);
+    toast('已生成备份文件');
+  }catch(e){toast('导出失败：'+(e&&e.message||e));}
+}
+function importText(txt){
+  var parsed;
+  try{parsed=JSON.parse(txt);}catch(e){throw new Error('不是合法的 JSON');}
+  var next=normalize(parsed);
+  if(!next)throw new Error('结构不符，需要包含 remotes/proxies/targets 数组');
+  state=next;
+  persist();renderAll();
+  toast('已导入：'+state.remotes.length+' 远程 / '+state.proxies.length+' 代理 / '+state.targets.length+' 入口');
+}
+
+/* ---------- 顶部与初始化 ---------- */
+function renderPill(){
+  var pill=$('#storePill');
+  if(store.ok){
+    pill.textContent='本机保存已开启';
+    pill.className='pill ok';
+    pill.title='数据保存在本机浏览器，刷新或重开都还在';
+  }else{
+    pill.textContent='仅本次有效';
+    pill.className='pill warn';
+    pill.title='浏览器禁止了本机存储，改动只在本次打开有效，请导出备份';
+  }
+}
+function renderUpload(){
+  $('#upUrl').value=state.upload.url||'';
+  $('#upMethod').value=state.upload.method||'PUT';
+}
+function renderSamples(){
+  var has=state.remotes.concat(state.proxies,state.targets).some(function(x){return x.sample;});
+  $('#dropSamples').hidden=!has;
+}
+function renderAll(){
+  renderRemotes();renderProxies();renderTargets();renderStaged();renderSamples();renderPill();
+}
+
+/* 事件绑定 */
+$('#addRemote').addEventListener('click',function(){remoteForm(null);});
+$('#addProxy').addEventListener('click',function(){proxyForm(null);});
+$('#addTarget').addEventListener('click',function(){targetForm(null);});
+$('#filePicker').addEventListener('change',function(e){addFiles(e.target.files);e.target.value='';});
+$('#clearFiles').addEventListener('click',function(){
+  if(!staged.length){toast('列表已经空了');return;}
+  staged=[];renderStaged();toast('已清空文件列表');
+});
+$('#upUrl').addEventListener('change',function(){state.upload.url=this.value.trim();persist();});
+$('#upMethod').addEventListener('change',function(){state.upload.method=this.value;persist();});
+$('#exportFile').addEventListener('click',exportBackup);
+$('#copyBackup').addEventListener('click',function(){copyText(backupJson(),'备份 JSON');});
+$('#importFile').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0];
+  if(!f)return;
+  f.text().then(importText).then(null,function(err){toast('导入失败：'+(err&&err.message||err));});
+  e.target.value='';
+});
+$('#dropSamples').addEventListener('click',function(){
+  if(!window.confirm('删除所有带“示例”标记的档案？'))return;
+  ['remotes','proxies','targets'].forEach(function(k){state[k]=state[k].filter(function(x){return !x.sample;});});
+  if(!state.proxies.some(function(p){return p.id===state.activeProxyId;}))state.activeProxyId=null;
+  persist();renderAll();toast('示例数据已删除');
+});
+$('#clearAll').addEventListener('click',function(){
+  if(!window.confirm('清空全部档案？此操作不可撤销，建议先导出备份。'))return;
+  state=seed();state.remotes=[];state.proxies=[];state.targets=[];state.activeProxyId=null;
+  persist();renderAll();toast('已清空');
+});
+$('#copyAgain').addEventListener('click',function(){if(lastCopy)copyText(lastCopy,'内容');});
+$('#copyClose').addEventListener('click',function(){
+  $('#copyBar').hidden=true;document.body.classList.remove('has-copybar');
+});
+
+/* 导航高亮 */
+var links=Array.prototype.slice.call(document.querySelectorAll('.seg a'));
+var sections=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting)return;
+      var i=sections.indexOf(en.target);
+      links.forEach(function(a,j){a.classList.toggle('on',j===i);});
+    });
+  },{rootMargin:'-45% 0px -50% 0px'});
+  sections.forEach(function(s){if(s)io.observe(s);});
+}
+
+renderAll();renderUpload();
+
+window.__bench={
+  version:1,
+  getState:function(){return JSON.parse(JSON.stringify(state));},
+  copyText:copyText,
+  remoteUri:remoteUri,
+  remoteCopyText:remoteCopyText,
+  proxyUrl:proxyUrl,
+  proxyEnv:proxyEnv,
+  hashFile:hashFile,
+  importText:importText,
+  backupJson:backupJson,
+  addFiles:addFiles,
+  getStaged:function(){return staged.map(function(s){return {name:s.file.name,size:s.file.size,hash:s.hash,hashErr:s.hashErr,result:s.result};});}
+};
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){});}</script>
+</body>
+</html>

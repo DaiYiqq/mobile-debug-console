@@ -1,0 +1,40 @@
+name: "🐛 问题报告（Bug Report）"
+description: 描述你在使用中遇到的问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: 感谢报告问题。请尽量提供复现步骤，方便维护者定位。
+  - type: input
+    id: env
+    attributes:
+      label: 使用环境
+      description: 例如「Android 14 · Chrome 125 · file:// 打开」或「Windows 11 · Edge」
+      placeholder: Android 14 / Chrome 125 / file://
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开工作台\n2. 点击…\n3. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为（含报错信息或截图）
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息（可选）
+      description: 备份 JSON 结构（请脱敏）、浏览器控制台报错等

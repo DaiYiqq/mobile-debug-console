@@ -1,0 +1,15 @@
+手机调试工作台 · Android 安装包
+
+方式 A（推荐 · 桌面图标 · 离线可用）—— PWA 安装：
+  用 Chrome / Edge 打开 https://daiyiqq.github.io/mobile-debug-console/
+  菜单 →「安装应用 / 添加到主屏幕」→ 桌面出现独立图标，断网可用。
+
+方式 B —— 本地文件：
+  把 手机调试工作台.html 复制到手机（如 /sdcard/Download/），
+  文件管理器点开 → 选择 Chrome 打开。
+  如需桌面图标：Chrome 菜单 →「添加到主屏幕」
+  （部分版本对 file:// 不提供此入口，可改用方式 A）。
+
+方式 C —— 真·APK：
+  暂未发布官方 APK。欢迎社区贡献 WebView 壳构建流水线
+  （详见仓库 CONTRIBUTING.md）。PWA 版已提供接近原生 App 的体验。

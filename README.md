@@ -7,6 +7,10 @@
 - 数据存放：只写在本机浏览器的 `localStorage`，可导出 / 导入 JSON 备份
 - 说明文档：`使用说明.md`（与本 README 内容互补，偏操作手册）
 
+> **开源许可**：GPL-3.0-only —— 保守型强 copyleft，二次分发与衍生必须同样开源。
+> **在线安装（PWA）**：<https://daiyiqq.github.io/mobile-debug-console/> —— Android / iOS / 桌面浏览器可直接「添加到主屏幕」，离线可用。
+> **社区贡献**：欢迎 Issues / PR / Discussions，先读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+
 ## 一、它解决什么问题
 
 在手机上折腾远程机器时，实际动作往往是这样的：翻聊天记录找主机 IP → 拼一条 SSH 命令 → 复制 → 切到 Termux → 发现端口写错 → 再回来改；接着要开代理，又得去翻代理 App 看端口；最后要把打包好的文件传到别的机器，还得想地址怎么写。
@@ -39,6 +43,20 @@ cd ~/debugbench && python -m http.server 8088 --bind 127.0.0.1
 ### 方式 3：快捷方式类 App
 
 装一个能创建网页 / 文件快捷方式的工具（如 Shortcut Maker 一类），指向这个 HTML 文件，效果等同于桌面图标。
+
+### 方式 4：安装包 / PWA（开源后新增，推荐）
+
+在线 PWA：用手机浏览器打开 <https://daiyiqq.github.io/mobile-debug-console/>，Chrome / Edge 菜单选「安装应用」，iOS 用 Safari「分享 → 添加到主屏幕」，得到独立图标、断网可用。
+
+本地安装包：见 `release/` 目录（各包 SHA-256 见 `release/SHA256SUMS.txt`）：
+
+| 平台 | 安装方式 | 安装包 |
+|---|---|---|
+| Android | PWA「安装应用」，或本地 html 用 Chrome 打开 | `release/mobile-debug-console-android.zip` |
+| iOS / iPadOS | Safari 打开 Pages → 分享 → 添加到主屏幕 | `release/mobile-debug-console-ios.zip` |
+| Windows | 解压后运行 `安装.bat`（创建桌面 + 开始菜单快捷方式） | `release/mobile-debug-console-windows-x64.zip` |
+| macOS | `.app` 拖入「应用程序」（首次需按包内说明执行一次 chmod） | `release/mobile-debug-console-macos.zip` |
+| Linux | 运行 `bash install.sh`（生成桌面应用菜单项，另附卸载脚本） | `release/mobile-debug-console-linux.tar.gz` |
 
 > 数据是跟「浏览器 + 文件位置」绑定的。换浏览器、移动文件、清缓存都会读不到旧数据；页面顶部显示「仅本次有效」时说明当前环境根本不能存，记得先导出备份。
 
@@ -158,7 +176,7 @@ export no_proxy="127.0.0.1,localhost"
 8. 主屏幕快捷方式不保证。多数浏览器只对 `http(s)` 页面提供「添加到主屏幕」，本地文件请走第二节的方 2 或方式 3。
 9. 没有二维码。为了保持单文件离线，不引第三方二维码库；需要扫码时复制文本，或用系统输入法的扫码 / 剪贴板中转。
 10. 大文件不哈希。超过 64 MB 跳过 SHA-256，避免手机内存吃紧；上传和分享不受影响。
-11. 不是 PWA。没有 service worker 和 manifest，不能后台同步、不能推送；页面本身就是文件，断网打开照样可用。
+11. 单文件版不是 PWA。`手机调试工作台.html` 保持零依赖单文件；仓库另提供 PWA 版 `index.html`（配 `manifest.webmanifest` 与 `sw.js`，GitHub Pages 在线可安装、离线可用）。
 
 ## 七、给爱折腾的入口
 
@@ -174,11 +192,20 @@ __bench.getStaged()                   // 当前已选文件与哈希
 
 ## 八、仓库文件
 
-| 文件 | 说明 |
+| 文件 / 目录 | 说明 |
 |---|---|
-| `手机调试工作台.html` | 工具本体，单文件、零外部依赖，直接用浏览器打开 |
-| `README.md` | 本文档：用途、安装、模块说明、测试与限制 |
-| `使用说明.md` | 操作手册风格的使用说明，偏细节与示例 |
+| `手机调试工作台.html` | 工具本体（唯一真源），单文件、零外部依赖 |
+| `index.html` | PWA 版入口（由本体经 `scripts/sync-pwa.py` 生成，勿手改） |
+| `manifest.webmanifest` / `sw.js` | PWA 清单与 Service Worker |
+| `icons/` | PWA 图标（`scripts/make-icons.py` 生成） |
+| `release/` | 五个平台的安装包与 `SHA256SUMS.txt`；`release/staging/` 为启动器源文件 |
+| `scripts/` | 图标生成 / PWA 同步 / 打包脚本 |
+| `.github/` | Issue 模板与 PR 模板 |
+| `CONTRIBUTING.md` | 贡献指南 |
+| `CODE_OF_CONDUCT.md` | 行为准则（Contributor Covenant 2.1） |
+| `SECURITY.md` | 安全漏洞报告渠道 |
+| `LICENSE` | GPL-3.0-only 许可全文 |
+| `README.md` / `使用说明.md` | 项目说明 / 操作手册 |
 
 ## 九、免责与安全
 
@@ -190,3 +217,19 @@ __bench.getStaged()                   // 当前已选文件与哈希
         ②微信：daiyi091004
         ③：QQ邮箱：1703205607@qq.com
         ④：Gemail邮箱：daiy91004@gmail.com
+## 十、社区与贡献
+
+本项目欢迎社区共同维护与开发：
+
+- **讨论**：GitHub Discussions 聊想法、使用场景与路线图；
+- **问题**：GitHub Issues 提交 bug 或功能请求（模板已配好）；
+- **代码**：Fork → 分支 → PR，流程与规范见 [CONTRIBUTING.md](CONTRIBUTING.md)；
+- **行为准则**：参与者默认遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；
+- **安全**：漏洞请走 [SECURITY.md](SECURITY.md) 的私密渠道。
+
+## 十一、许可
+
+本项目以 **GPL-3.0-only**（GNU 通用公共许可证第 3 版）开源，全文见 [LICENSE](LICENSE)。
+选择这一「保守型」许可意味着：任何人都可以自由使用、修改、分发，但分发（包括修改后的版本）必须继续以 GPL-3.0 开源并保留声明。各源码文件以 `SPDX-License-Identifier: GPL-3.0-only` 标识。
+
+> 若你希望改用更宽松的许可（如 MIT / Apache-2.0），请在 Discussions 发起提案，需征得所有贡献者同意。

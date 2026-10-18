@@ -1,0 +1,5 @@
+c766d14394dc4900b2418ffc9019a9839ed1b068d86d7950bf6b306ef5be19b3  mobile-debug-console-android.zip
+60ae661f746d21b0ad93a8b56094e36f3e751626deca7a5926ab2257d2d4d553  mobile-debug-console-ios.zip
+3b2ddb1ebbad69389dbaa5d1f42af669fb310f715b4104ffb83505bf6f231c3a  mobile-debug-console-linux.tar.gz
+511a1fc5a07e94f1e9394f8184c990a9b80b359c895653217bba515dce14f812  mobile-debug-console-macos.zip
+067cc81da94ad3cf148dfe05785eea48047a5ef2e084a73730b371d7be879651  mobile-debug-console-windows-x64.zip

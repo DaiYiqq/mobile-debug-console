@@ -1,0 +1,13 @@
+手机调试工作台 · macOS 安装包
+
+1. 解压 zip（双击即可）。
+2. 打开「终端」，执行一次授权（Windows 传输丢失可执行位）：
+   chmod +x "手机调试工作台.app/Contents/MacOS/launch.sh"
+3. 把「手机调试工作台.app」拖进「应用程序」文件夹，双击启动。
+   首次启动若被 Gatekeeper 拦截：右键图标 → 打开。
+   如提示“已损坏”，终端执行：
+   xattr -dr com.apple.quarantine "手机调试工作台.app"
+
+免安装用法：
+  直接用浏览器打开 .app 内 Resources/手机调试工作台.html；
+  或访问 https://daiyiqq.github.io/mobile-debug-console/ 安装 PWA 版。

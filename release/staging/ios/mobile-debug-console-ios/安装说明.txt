@@ -1,0 +1,14 @@
+手机调试工作台 · iOS / iPadOS 安装包
+
+方式 A（推荐）—— PWA 安装：
+  用 Safari 打开 https://daiyiqq.github.io/mobile-debug-console/
+  点「分享」→「添加到主屏幕」→ 桌面出现图标，可离线使用。
+
+方式 B —— 本地文件：
+  把 手机调试工作台.html 保存到「文件」App，
+  长按 → 共享 → 用 Safari 打开；
+  再从 Safari 分享菜单「添加到主屏幕」。
+
+方式 C —— 真·IPA：
+  需 macOS + Xcode 构建并签名，暂未提供官方 IPA。
+  欢迎社区贡献构建流水线（详见仓库 CONTRIBUTING.md）。

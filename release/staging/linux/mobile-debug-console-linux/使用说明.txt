@@ -1,0 +1,8 @@
+手机调试工作台 · Linux 安装包
+
+安装：终端里执行  bash install.sh
+  安装到 ~/.local/share/mobile-debug-console/，
+  并在应用菜单生成「手机调试工作台」入口。
+卸载：执行  bash uninstall.sh
+免安装：直接用浏览器打开目录里的 手机调试工作台.html。
+注意：脚本无需 chmod +x，用 bash 调用即可。
