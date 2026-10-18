@@ -6,7 +6,8 @@
 | 文件 | 平台 | 安装方式 |
 |---|---|---|
 | `mobile-debug-console-windows-x64.zip` | Windows | 解压运行 `安装.bat`（创建桌面 + 开始菜单快捷方式）；或双击 `启动工作台.bat` 免安装使用 |
-| `mobile-debug-console-android.zip` | Android | 本地 html + 安装说明；推荐 PWA 在线安装 |
+| `mobile-debug-console-android.apk` | Android | **真·APK**，Android 5.0+ 直接安装（签名包，离线可用） |
+| `mobile-debug-console-android.zip` | Android | 本地 html + 安装说明；也可 PWA 在线安装 |
 | `mobile-debug-console-ios.zip` | iOS / iPadOS | 本地 html + 安装说明；推荐 Safari 添加到主屏幕 |
 | `mobile-debug-console-macos.zip` | macOS | 脚本壳 `.app`，拖入「应用程序」；首次需按包内说明执行一次 `chmod +x` |
 | `mobile-debug-console-linux.tar.gz` | Linux | `bash install.sh` 安装到 `~/.local` 并生成 `.desktop` 菜单项；`bash uninstall.sh` 卸载 |

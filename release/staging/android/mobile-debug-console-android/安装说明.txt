@@ -1,15 +1,15 @@
 手机调试工作台 · Android 安装包
 
-方式 A（推荐 · 桌面图标 · 离线可用）—— PWA 安装：
+方式 A —— 直接安装 APK（推荐）：
+  下载 release/mobile-debug-console-android.apk（或 GitHub Release 附件），
+  传到手机后点击安装。首次安装需允许「安装未知来源应用」。
+  支持 Android 5.0+，离线可用，数据只存本机。
+
+方式 B —— PWA 安装（与浏览器共用数据）：
   用 Chrome / Edge 打开 https://daiyiqq.github.io/mobile-debug-console/
   菜单 →「安装应用 / 添加到主屏幕」→ 桌面出现独立图标，断网可用。
 
-方式 B —— 本地文件：
-  把 手机调试工作台.html 复制到手机（如 /sdcard/Download/），
-  文件管理器点开 → 选择 Chrome 打开。
-  如需桌面图标：Chrome 菜单 →「添加到主屏幕」
-  （部分版本对 file:// 不提供此入口，可改用方式 A）。
+方式 C —— 本地 html：
+  把 手机调试工作台.html 复制到手机，文件管理器点开 → Chrome 打开。
 
-方式 C —— 真·APK：
-  暂未发布官方 APK。欢迎社区贡献 WebView 壳构建流水线
-  （详见仓库 CONTRIBUTING.md）。PWA 版已提供接近原生 App 的体验。
+三者数据互不相通（本机存储按应用/站点隔离），换用时请先导出备份。

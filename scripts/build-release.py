@@ -75,6 +75,8 @@ def main() -> None:
         out = RELEASE / f"{dname}.tar.gz"
         tar_dir(src, out)
         outs.append(out)
+    for apk in sorted(RELEASE.glob("*.apk")):
+        outs.append(apk)
     lines = []
     for f in sorted(outs):
         h = hashlib.sha256(f.read_bytes()).hexdigest()

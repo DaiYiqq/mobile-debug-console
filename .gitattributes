@@ -2,3 +2,6 @@
 *.png binary
 *.zip binary
 *.gz binary
+*.apk binary
+*.jks binary
+*.keystore binary
