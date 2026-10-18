@@ -7,3 +7,4 @@ __pycache__/
 node_modules/
 .apkbuild/
 *.idsig
+release/mobile-debug-console-windows-portable.zip

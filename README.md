@@ -54,7 +54,7 @@ cd ~/debugbench && python -m http.server 8088 --bind 127.0.0.1
 |---|---|---|
 | Android | **直接安装 APK**（Android 5.0+）；或 PWA「安装应用」 | `release/mobile-debug-console-android.apk` |
 | iOS / iPadOS | Safari 打开 Pages → 分享 → 添加到主屏幕 | `release/mobile-debug-console-ios.zip` |
-| Windows | 解压后运行 `安装.bat`（创建桌面 + 开始菜单快捷方式） | `release/mobile-debug-console-windows-x64.zip` |
+| Windows | 解压后运行 `安装.bat`（创建桌面 + 开始菜单快捷方式）；或便携 EXE（Release 附件） | `release/mobile-debug-console-windows-x64.zip` |
 | macOS | `.app` 拖入「应用程序」（首次需按包内说明执行一次 chmod） | `release/mobile-debug-console-macos.zip` |
 | Linux | 运行 `bash install.sh`（生成桌面应用菜单项，另附卸载脚本） | `release/mobile-debug-console-linux.tar.gz` |
 
