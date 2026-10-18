@@ -28,7 +28,7 @@ def build() -> None:
         html = html.replace(marker, "")
     html = html.replace("</head>", HEAD_INJECT + "</head>", 1)
     html = html.replace("</body>", BODY_INJECT + "</body>", 1)
-    html = "<!DOCTYPE html>\n" + SPDX + html[len("<!DOCTYPE html>"):]
+    html = "<!DOCTYPE html>\n" + SPDX + html[len("<!DOCTYPE html>\n"):]
     DST.write_text(html, encoding="utf-8")
     print(f"已生成 {DST}")
 
